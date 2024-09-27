@@ -1,0 +1,133 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("POSTGRES_PRISMA_URL")
+  directUrl = env("POSTGRES_URL_NON_POOLING")
+}
+
+model User {
+  id            String          @id @default(cuid())
+  name          String?
+  email         String?         @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  accounts      Account[]
+  Authenticator Authenticator[]
+  Post          Post[]
+  sessions      Session[]
+}
+
+model Account {
+  id                String   @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Authenticator {
+  credentialID         String  @unique
+  userId               String
+  providerAccountId    String
+  credentialPublicKey  String
+  counter              Int
+  credentialDeviceType String
+  credentialBackedUp   Boolean
+  transports           String?
+  user                 User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, credentialID])
+}
+
+enum PostStatus {
+  progress
+  completed
+}
+
+model Post {
+  id          String     @id @default(cuid())
+  title       String
+  content     String
+  slug        String?    @unique
+  published   Boolean    @default(false)
+  likes       Int?       @default(0)
+  readingTime Int?       @default(0)
+  image       String?
+  imageAlt    String?
+  status      PostStatus @default(progress)
+  watched     Int?       @default(0)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  authorId String
+  author   User   @relation(fields: [authorId], references: [id])
+
+  metaTitle       String?
+  metaDescription String?
+  categoryId      String
+  categories      Category @relation(fields: [categoryId], references: [id])
+
+  tags Tag[]
+}
+
+model Category {
+  id       String  @id @default(cuid())
+  title    String
+  slug     String? @unique
+  image    String?
+  imageAlt String?
+
+  posts Post[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Tag {
+  id       String  @id @default(cuid())
+  title    String
+  slug     String? @unique
+  image    String?
+  imageAlt String?
+
+  posts Post[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
